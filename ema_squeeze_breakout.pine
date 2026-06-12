@@ -88,6 +88,10 @@ short_condition = short_20_50 or short_3ema or short_4ema
 signal_text = ""
 signal_color = color.gray
 
+dist_20_50_ratio = str.tostring(dist_20_50 / atr, "#.##")
+dist_3ema_ratio = str.tostring(dist_3ema / atr, "#.##")
+dist_4ema_ratio = str.tostring(dist_4ema / atr, "#.##")
+
 if warning_4ema
     signal_text := "4EMA黏合 关注反向突破"
     signal_color := color.new(color.red, 30)
@@ -98,13 +102,13 @@ else if(warning_20_50)
     signal_text := "20/50黏合 突破易失败"
     signal_color := color.new(color.yellow, 20)
 else if(trend_bull)
-    signal_text := "多头趋势"
+    signal_text := "多头趋势 | 距:" + dist_20_50_ratio + "/" + dist_3ema_ratio
     signal_color := color.new(color.green, 30)
 else if(trend_bear)
-    signal_text := "空头趋势"
+    signal_text := "空头趋势 | 距:" + dist_20_50_ratio + "/" + dist_3ema_ratio
     signal_color := color.new(color.red, 30)
 else
-    signal_text := "无信号"
+    signal_text := "无信号 | 距:" + dist_20_50_ratio + "/" + dist_3ema_ratio + "/" + dist_4ema_ratio
     signal_color := color.new(color.gray, 50)
 
 var table signal_table = table.new(position.top_right, 1, 1)
