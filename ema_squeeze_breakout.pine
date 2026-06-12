@@ -91,31 +91,31 @@ signal_text = ""
 signal_color = color.gray
 
 if warning_4ema_bear
-    signal_text := "🔴4EMA黏合 | 空头趋势 | 关注反向突破失败"
+    signal_text := "4EMA黏合 | 空头趋势 | 关注反向突破失败"
     signal_color := color.new(color.red, 30)
-elif warning_4ema_bull
-    signal_text := "🔴4EMA黏合 | 多头趋势 | 关注反向突破失败"
+else if(warning_4ema_bull)
+    signal_text := "4EMA黏合 | 多头趋势 | 关注反向突破失败"
     signal_color := color.new(color.red, 30)
-elif warning_3ema_bear
-    signal_text := "🟠3EMA黏合 | 空头趋势 | 观察反向突破"
+else if(warning_3ema_bear)
+    signal_text := "3EMA黏合 | 空头趋势 | 观察反向突破"
     signal_color := color.new(color.orange, 20)
-elif warning_3ema_bull
-    signal_text := "🟠3EMA黏合 | 多头趋势 | 观察反向突破"
+else if(warning_3ema_bull)
+    signal_text := "3EMA黏合 | 多头趋势 | 观察反向突破"
     signal_color := color.new(color.orange, 20)
-elif warning_20_50_bear
-    signal_text := "🟡20/50黏合 | 空头趋势 | 突破易失败"
+else if(warning_20_50_bear)
+    signal_text := "20/50黏合 | 空头趋势 | 突破易失败"
     signal_color := color.new(color.yellow, 20)
-elif warning_20_50_bull
-    signal_text := "🟡20/50黏合 | 多头趋势 | 突破易失败"
+else if(warning_20_50_bull)
+    signal_text := "20/50黏合 | 多头趋势 | 突破易失败"
     signal_color := color.new(color.yellow, 20)
-elif trend_bull
-    signal_text := "📈多头趋势 | " + dist_text
+else if(trend_bull)
+    signal_text := "多头趋势 | " + dist_text
     signal_color := color.new(color.green, 30)
-elif trend_bear
-    signal_text := "📉空头趋势 | " + dist_text
+else if(trend_bear)
+    signal_text := "空头趋势 | " + dist_text
     signal_color := color.new(color.red, 30)
 else
-    signal_text := "⚖️无信号 | " + dist_text
+    signal_text := "无信号 | " + dist_text
     signal_color := color.new(color.gray, 50)
 
 var table signal_table = table.new(position.top_right, 1, 1)
