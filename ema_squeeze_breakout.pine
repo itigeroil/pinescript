@@ -56,17 +56,16 @@ plotshape(warning_condition, title="黏合警示",
      style=shape.triangledown, location=location.abovebar,
      color=color.new(color.yellow, 0), size=size.small)
 
-var table warning_table = table.new(position.top_right, 2, 3,
-     border_width=1, border_color=color.gray, bgcolor=color.new(color.gray, 90))
-table.cell(warning_table, 0, 0, "状态",        text_color=color.white,  bgcolor=color.new(color.gray, 80))
-table.cell(warning_table, 1, 0, str.tostring(squeeze_ratio, "#.##"),
-     text_color=color.yellow)
-table.cell(warning_table, 0, 1, "20/50黏合",   text_color=color.white)
-table.cell(warning_table, 1, 1, is_squeeze ? "是" : "否",
-     text_color=is_squeeze ? color.green : color.red)
-table.cell(warning_table, 0, 2, "突破警示",    text_color=color.white)
-table.cell(warning_table, 1, 2, warning_condition ? "当前突破易失败" : "-",
-     text_color=warning_condition ? color.yellow : color.white)
+// 构建信号文本和颜色
+signal_text = warning_condition ? "⚠️ 黏合中 | 突破易失败" : 
+     is_squeeze ? "📊 黏合中 | 比值: " + str.tostring(squeeze_ratio, "#.##") : 
+     "比值: " + str.tostring(squeeze_ratio, "#.##")
+signal_color = warning_condition ? color.new(color.orange, 20) : 
+     is_squeeze ? color.new(color.blue, 30) : 
+     color.new(color.gray, 50)
+
+var table signal_table = table.new(position.top_right, 1, 1)
+table.cell(signal_table, 0, 0, signal_text, bgcolor=signal_color, text_color=color.white, text_halign=text.align_left)
 
 // ———— 3. 反向强势运转失败后突破均线入场 ————
 // 逻辑：
