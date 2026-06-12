@@ -91,22 +91,22 @@ signal_text_ema = ""
 signal_color_ema = color.gray
 
 if warning_4ema_bear
-    signal_text_ema := "4EMA黏合 | 空头趋势 | 关注反向突破失败"
+    signal_text_ema := "20+50+100+200黏合 | 空头趋势 | 关注反向突破失败"
     signal_color_ema := color.new(color.red, 0)
 else if(warning_4ema_bull)
-    signal_text_ema := "4EMA黏合 | 多头趋势 | 关注反向突破失败"
+    signal_text_ema := "20+50+100+200黏合 | 多头趋势 | 关注反向突破失败"
     signal_color_ema := color.new(color.green, 0)
 else if(warning_3ema_bear)
-    signal_text_ema := "3EMA黏合 | 空头趋势 | 观察反向突破"
+    signal_text_ema := "20+50+100黏合 | 空头趋势 | 观察反向突破"
     signal_color_ema := color.new(color.red, 0)
 else if(warning_3ema_bull)
-    signal_text_ema := "3EMA黏合 | 多头趋势 | 观察反向突破"
+    signal_text_ema := "20+50+100黏合 | 多头趋势 | 观察反向突破"
     signal_color_ema := color.new(color.green, 0)
 else if(warning_20_50_bear)
-    signal_text_ema := "20/50黏合 | 空头趋势 | 突破易失败"
+    signal_text_ema := "20+50黏合 | 空头趋势 | 突破易失败"
     signal_color_ema := color.new(color.red, 0)
 else if(warning_20_50_bull)
-    signal_text_ema := "20/50黏合 | 多头趋势 | 突破易失败"
+    signal_text_ema := "20+50黏合 | 多头趋势 | 突破易失败"
     signal_color_ema := color.new(color.green, 0)
 else if(trend_bull)
     signal_text_ema := "多头趋势 | " + dist_text
