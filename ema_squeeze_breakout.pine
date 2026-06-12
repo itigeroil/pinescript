@@ -17,10 +17,7 @@ ema100 = ta.ema(close, ema100_len)
 ema200 = ta.ema(close, ema200_len)
 atr = ta.atr(atr_len)
 
-plot(ema20, color=color.blue, title="EMA20", linewidth=2)
-plot(ema50, color=color.orange, title="EMA50", linewidth=2)
-plot(ema100, color=color.purple, title="EMA100", linewidth=2)
-plot(ema200, color=color.red, title="EMA200", linewidth=2)
+
 
 dist_20_50 = math.abs(ema20 - ema50)
 squeeze_20_50 = (dist_20_50 / atr) < squeeze_threshold
@@ -86,12 +83,7 @@ short_4ema = is_squeeze_4ema and trend_bear and saw_upthrust and ta.crossunder(c
 long_condition = long_20_50 or long_3ema or long_4ema
 short_condition = short_20_50 or short_3ema or short_4ema
 
-plotshape(warning_20_50, title="20/50黏合", style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.small)
-plotshape(warning_3ema_bear, title="3EMA黏合", style=shape.triangledown, location=location.abovebar, color=color.orange, size=size.small)
-plotshape(warning_4ema, title="4EMA黏合", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
 
-plotshape(long_condition, title="做多", style=shape.labelup, location=location.belowbar, color=color.green, textcolor=color.white, text="多", size=size.medium)
-plotshape(short_condition, title="做空", style=shape.labeldown, location=location.abovebar, color=color.red, textcolor=color.white, text="空", size=size.medium)
 
 signal_text = ""
 signal_color = color.gray
