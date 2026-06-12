@@ -17,8 +17,6 @@ ema100 = ta.ema(close, ema100_len)
 ema200 = ta.ema(close, ema200_len)
 atr = ta.atr(atr_len)
 
-
-
 dist_20_50 = math.abs(ema20 - ema50)
 squeeze_20_50 = (dist_20_50 / atr) < squeeze_threshold
 
@@ -39,15 +37,19 @@ is_squeeze_4ema = ta.barssince(not squeeze_4ema) >= squeeze_bars - 1
 price_below_20_50 = close < ema20 and close < ema50
 price_above_20_50 = close > ema20 and close > ema50
 price_below_3ema = close < ema20 and close < ema50 and close < ema100
+price_above_3ema = close > ema20 and close > ema50 and close > ema100
 price_below_200 = close < ema200
 price_above_200 = close > ema200
 
 trend_bull = price_above_200
 trend_bear = price_below_200
 
-warning_20_50 = is_squeeze_20_50 and (price_below_20_50 or price_above_20_50)
+warning_20_50_bear = is_squeeze_20_50 and trend_bear and price_below_20_50
+warning_20_50_bull = is_squeeze_20_50 and trend_bull and price_above_20_50
 warning_3ema_bear = is_squeeze_3ema and trend_bear and price_below_3ema
-warning_4ema = is_squeeze_4ema
+warning_3ema_bull = is_squeeze_3ema and trend_bull and price_above_3ema
+warning_4ema_bear = is_squeeze_4ema and trend_bear and price_below_200
+warning_4ema_bull = is_squeeze_4ema and trend_bull and price_above_200
 
 squeeze_start_bar = ta.barssince(not squeeze_20_50)
 lookback_len = math.min(squeeze_start_bar + 1, swing_lookback)
@@ -83,30 +85,37 @@ short_4ema = is_squeeze_4ema and trend_bear and saw_upthrust and ta.crossunder(c
 long_condition = long_20_50 or long_3ema or long_4ema
 short_condition = short_20_50 or short_3ema or short_4ema
 
-
+dist_text = "20-50:" + str.tostring(dist_20_50 / atr, "#.##") + " 3EMA:" + str.tostring(dist_3ema / atr, "#.##") + " 4EMA:" + str.tostring(dist_4ema / atr, "#.##")
 
 signal_text = ""
 signal_color = color.gray
 
-dist_text = "20-50:" + str.tostring(dist_20_50 / atr, "#.##") + " 3EMA:" + str.tostring(dist_3ema / atr, "#.##") + " 4EMA:" + str.tostring(dist_4ema / atr, "#.##")
-
-if warning_4ema
-    signal_text := "4EMA黏合 关注反向突破"
+if warning_4ema_bear
+    signal_text := "🔴4EMA黏合 | 空头趋势 | 关注反向突破失败"
     signal_color := color.new(color.red, 30)
-else if(warning_3ema_bear)
-    signal_text := "3EMA黏合 做空区观察"
+elif warning_4ema_bull
+    signal_text := "🔴4EMA黏合 | 多头趋势 | 关注反向突破失败"
+    signal_color := color.new(color.red, 30)
+elif warning_3ema_bear
+    signal_text := "🟠3EMA黏合 | 空头趋势 | 观察反向突破"
     signal_color := color.new(color.orange, 20)
-else if(warning_20_50)
-    signal_text := "20/50黏合 突破易失败"
+elif warning_3ema_bull
+    signal_text := "🟠3EMA黏合 | 多头趋势 | 观察反向突破"
+    signal_color := color.new(color.orange, 20)
+elif warning_20_50_bear
+    signal_text := "🟡20/50黏合 | 空头趋势 | 突破易失败"
     signal_color := color.new(color.yellow, 20)
-else if(trend_bull)
-    signal_text := "多头趋势 | " + dist_text
+elif warning_20_50_bull
+    signal_text := "🟡20/50黏合 | 多头趋势 | 突破易失败"
+    signal_color := color.new(color.yellow, 20)
+elif trend_bull
+    signal_text := "📈多头趋势 | " + dist_text
     signal_color := color.new(color.green, 30)
-else if(trend_bear)
-    signal_text := "空头趋势 | " + dist_text
+elif trend_bear
+    signal_text := "📉空头趋势 | " + dist_text
     signal_color := color.new(color.red, 30)
 else
-    signal_text := "无信号 | " + dist_text
+    signal_text := "⚖️无信号 | " + dist_text
     signal_color := color.new(color.gray, 50)
 
 var table signal_table = table.new(position.top_right, 1, 1)
@@ -114,6 +123,6 @@ table.cell(signal_table, 0, 0, signal_text, bgcolor=signal_color, text_color=col
 
 alertcondition(long_condition, title="做多入场", message="EMA黏合反转：做多")
 alertcondition(short_condition, title="做空入场", message="EMA黏合反转：做空")
-alertcondition(warning_4ema, title="4EMA黏合", message="4根均线黏合")
-alertcondition(warning_3ema_bear, title="3EMA黏合", message="3根均线黏合")
-alertcondition(warning_20_50, title="20/50黏合", message="20/50均线黏合")
+alertcondition(warning_4ema_bear or warning_4ema_bull, title="4EMA黏合", message="4根均线黏合")
+alertcondition(warning_3ema_bear or warning_3ema_bull, title="3EMA黏合", message="3根均线黏合")
+alertcondition(warning_20_50_bear or warning_20_50_bull, title="20/50黏合", message="20/50均线黏合")
