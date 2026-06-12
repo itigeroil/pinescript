@@ -87,39 +87,39 @@ short_condition = short_20_50 or short_3ema or short_4ema
 
 dist_text = "20-50:" + str.tostring(dist_20_50 / atr, "#.##") + " 3EMA:" + str.tostring(dist_3ema / atr, "#.##") + " 4EMA:" + str.tostring(dist_4ema / atr, "#.##")
 
-signal_text = ""
-signal_color = color.gray
+signal_text_ema = ""
+signal_color_ema = color.gray
 
 if warning_4ema_bear
-    signal_text := "4EMA黏合 | 空头趋势 | 关注反向突破失败"
-    signal_color := color.new(color.red, 0)
+    signal_text_ema := "4EMA黏合 | 空头趋势 | 关注反向突破失败"
+    signal_color_ema := color.new(color.red, 0)
 else if(warning_4ema_bull)
-    signal_text := "4EMA黏合 | 多头趋势 | 关注反向突破失败"
-    signal_color := color.new(color.green, 0)
+    signal_text_ema := "4EMA黏合 | 多头趋势 | 关注反向突破失败"
+    signal_color_ema := color.new(color.green, 0)
 else if(warning_3ema_bear)
-    signal_text := "3EMA黏合 | 空头趋势 | 观察反向突破"
-    signal_color := color.new(color.red, 0)
+    signal_text_ema := "3EMA黏合 | 空头趋势 | 观察反向突破"
+    signal_color_ema := color.new(color.red, 0)
 else if(warning_3ema_bull)
-    signal_text := "3EMA黏合 | 多头趋势 | 观察反向突破"
-    signal_color := color.new(color.green, 0)
+    signal_text_ema := "3EMA黏合 | 多头趋势 | 观察反向突破"
+    signal_color_ema := color.new(color.green, 0)
 else if(warning_20_50_bear)
-    signal_text := "20/50黏合 | 空头趋势 | 突破易失败"
-    signal_color := color.new(color.red, 0)
+    signal_text_ema := "20/50黏合 | 空头趋势 | 突破易失败"
+    signal_color_ema := color.new(color.red, 0)
 else if(warning_20_50_bull)
-    signal_text := "20/50黏合 | 多头趋势 | 突破易失败"
-    signal_color := color.new(color.green, 0)
+    signal_text_ema := "20/50黏合 | 多头趋势 | 突破易失败"
+    signal_color_ema := color.new(color.green, 0)
 else if(trend_bull)
-    signal_text := "多头趋势 | " + dist_text
-    signal_color := color.new(color.green, 0)
+    signal_text_ema := "多头趋势 | " + dist_text
+    signal_color_ema := color.new(color.green, 0)
 else if(trend_bear)
-    signal_text := "空头趋势 | " + dist_text
-    signal_color := color.new(color.red, 0)
+    signal_text_ema := "空头趋势 | " + dist_text
+    signal_color_ema := color.new(color.red, 0)
 else
-    signal_text := "无信号 | " + dist_text
-    signal_color := color.new(color.gray, 0)
+    signal_text_ema := "无信号 | " + dist_text
+    signal_color_ema := color.new(color.gray, 0)
 
 var table signal_table = table.new(position.top_right, 1, 1)
-table.cell(signal_table, 0, 0, signal_text, bgcolor=signal_color, text_color=color.white, text_halign=text.align_left)
+table.cell(signal_table, 0, 0, signal_text_ema, bgcolor=signal_color_ema, text_color=color.white, text_halign=text.align_left)
 
 alertcondition(long_condition, title="做多入场", message="EMA黏合反转：做多")
 alertcondition(short_condition, title="做空入场", message="EMA黏合反转：做空")
