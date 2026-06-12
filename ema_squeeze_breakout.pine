@@ -99,16 +99,16 @@ signal_color = color.gray
 if warning_4ema
     signal_text := "4EMA黏合 关注反向突破"
     signal_color := color.new(color.red, 30)
-elif warning_3ema_bear
+else if(warning_3ema_bear)
     signal_text := "3EMA黏合 做空区观察"
     signal_color := color.new(color.orange, 20)
-elif warning_20_50
+else if(warning_20_50)
     signal_text := "20/50黏合 突破易失败"
     signal_color := color.new(color.yellow, 20)
-elif trend_bull
+else if(trend_bull)
     signal_text := "多头趋势"
     signal_color := color.new(color.green, 30)
-elif trend_bear
+else if(trend_bear)
     signal_text := "空头趋势"
     signal_color := color.new(color.red, 30)
 else
