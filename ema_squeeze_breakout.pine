@@ -1,5 +1,5 @@
 //@version=5
-indicator("EMA黏合假突破反转策略", overlay=true, shorttitle="EMA_Squeeze_Reversal")
+indicator("EMA多级别黏合策略", overlay=true, shorttitle="EMA_Multi_Squeeze")
 
 // ———— 参数设置 ————
 ema20_len  = input.int(20,  title="EMA 20 周期",   minval=1)
@@ -7,26 +7,16 @@ ema50_len  = input.int(50,  title="EMA 50 周期",   minval=1)
 ema100_len = input.int(100, title="EMA 100 周期",  minval=1)
 ema200_len = input.int(200, title="EMA 200 周期",  minval=1)
 
-// 黏合阈值（基于ATR的百分比，用于判定20与50均线是否黏合）
-squeeze_threshold = input.float(0.3, title="黏合阈值 (ATR倍数)", step=0.05, minval=0.05,
-     tooltip="|EMA20 - EMA50| / ATR 小于该值时判定为黏合")
+squeeze_threshold = input.float(0.3, title="黏合阈值 (ATR倍数)", step=0.05, minval=0.05)
 atr_len = input.int(20, title="ATR 周期", minval=1)
-
-// 黏合确认K线数（连续多少根K线满足黏合才算有效黏合）
 squeeze_bars = input.int(3, title="黏合确认K线数", minval=1)
-
-// 反向强势运动检测（创新高/新低的回看窗口）
-swing_lookback = input.int(20, title="高低点回看窗口", minval=5, maxval=200)
-
-// 突破均线选择（false=突破EMA20/50入场, true=突破EMA100入场）
-break_ema100 = input.bool(false, title="以EMA100作为突破入场线")
+swing_lookback = input.int(20, title="高低点回看窗口", minval=5)
 
 // ———— 计算均线 ————
 ema20  = ta.ema(close, ema20_len)
 ema50  = ta.ema(close, ema50_len)
 ema100 = ta.ema(close, ema100_len)
 ema200 = ta.ema(close, ema200_len)
-
 atr = ta.atr(atr_len)
 
 // ———— 绘制均线 ————
@@ -35,87 +25,139 @@ plot(ema50,  color=color.new(color.orange, 0), title="EMA50",  linewidth=2)
 plot(ema100, color=color.new(color.purple, 0), title="EMA100", linewidth=2)
 plot(ema200, color=color.new(color.red,    0), title="EMA200", linewidth=2)
 
-// ———— 1. 黏合检测：20与50均线距离 ————
-// 用ATR归一化距离，避免不同标的价格差异影响
+// ———— 1. 多级别黏合检测 ————
+// 20&50黏合
 dist_20_50 = math.abs(ema20 - ema50)
-squeeze_ratio = dist_20_50 / atr
+squeeze_20_50 = (dist_20_50 / atr) < squeeze_threshold
 
-// 黏合状态（距离小于阈值）
-is_squeeze_raw = squeeze_ratio < squeeze_threshold
+// 20&50&100黏合（三根均线最大距离）
+max_3ema = math.max(math.max(ema20, ema50), ema100)
+min_3ema = math.min(math.min(ema20, ema50), ema100)
+dist_3ema = max_3ema - min_3ema
+squeeze_3ema = (dist_3ema / atr) < squeeze_threshold
 
-// 连续N根K线黏合才算有效黏合
-squeeze_bars_count = ta.barssince(not is_squeeze_raw)
-is_squeeze = squeeze_bars_count >= squeeze_bars - 1
+// 全部四根均线黏合
+max_4ema = math.max(max_3ema, ema200)
+min_4ema = math.min(min_3ema, ema200)
+dist_4ema = max_4ema - min_4ema
+squeeze_4ema = (dist_4ema / atr) < squeeze_threshold
 
-// ———— 2. 警示信号：黏合 + 价格在20&50均线以下 ————
-price_below_both = close < ema20 and close < ema50
-warning_condition = is_squeeze and price_below_both
+// 连续确认
+is_squeeze_20_50 = ta.barssince(not squeeze_20_50) >= squeeze_bars - 1
+is_squeeze_3ema  = ta.barssince(not squeeze_3ema)  >= squeeze_bars - 1
+is_squeeze_4ema  = ta.barssince(not squeeze_4ema)  >= squeeze_bars - 1
 
-// 在K线下绘制警示标记
-plotshape(warning_condition, title="黏合警示",
+// ———— 2. 价格位置判断 ————
+price_below_20_50 = close < ema20 and close < ema50
+price_above_20_50 = close > ema20 and close > ema50
+price_below_3ema  = close < ema20 and close < ema50 and close < ema100
+price_above_3ema  = close > ema20 and close > ema50 and close > ema100
+price_below_200   = close < ema200
+price_above_200   = close > ema200
+
+// 趋势方向（基于EMA200）
+trend_bull = price_above_200
+trend_bear = price_below_200
+
+// ———— 3. 警示信号 ————
+// 20&50黏合警示（上下方都提示）
+warning_20_50 = is_squeeze_20_50 and (price_below_20_50 or price_above_20_50)
+
+// 3根均线黏合警示（做空时价格在下方）
+warning_3ema_bear = is_squeeze_3ema and trend_bear and price_below_3ema
+
+// 4根均线黏合警示
+warning_4ema = is_squeeze_4ema
+
+// ———— 4. 反向强势运动检测 ————
+squeeze_start_bar = ta.barssince(not squeeze_20_50)
+lookback_len = math.min(squeeze_start_bar + 1, swing_lookback)
+
+lowest_in_squeeze  = ta.lowest(low,  lookback_len)
+highest_in_squeeze = ta.highest(high, lookback_len)
+
+made_new_low  = low <= lowest_in_squeeze  and is_squeeze_20_50
+made_new_high = high >= highest_in_squeeze and is_squeeze_20_50
+
+var bool saw_downthrust = false
+var bool saw_upthrust   = false
+
+if not is_squeeze_20_50
+    saw_downthrust := false
+    saw_upthrust   := false
+else
+    if made_new_low
+        saw_downthrust := true
+    if made_new_high
+        saw_upthrust := true
+
+// ———— 5. 入场条件 ————
+break_bull_line = math.max(ema20, ema50)
+break_bear_line = math.min(ema20, ema50)
+
+// 20&50黏合入场
+long_20_50  = is_squeeze_20_50 and saw_downthrust and ta.crossover(close, break_bull_line)
+short_20_50 = is_squeeze_20_50 and saw_upthrust   and ta.crossunder(close, break_bear_line)
+
+// 3根均线黏合入场（趋势方向优先）
+long_3ema  = is_squeeze_3ema and trend_bull and saw_downthrust and ta.crossover(close, ema100)
+short_3ema = is_squeeze_3ema and trend_bear and saw_upthrust   and ta.crossunder(close, ema100)
+
+// 4根均线黏合入场
+long_4ema  = is_squeeze_4ema and trend_bull and saw_downthrust and ta.crossover(close, ema100)
+short_4ema = is_squeeze_4ema and trend_bear and saw_upthrust   and ta.crossunder(close, ema100)
+
+// 合并入场信号
+long_condition  = long_20_50 or long_3ema or long_4ema
+short_condition = short_20_50 or short_3ema or short_4ema
+
+// ———— 绘制信号标记 ————
+plotshape(warning_20_50, title="20/50黏合警示",
      style=shape.triangledown, location=location.abovebar,
      color=color.new(color.yellow, 0), size=size.small)
+plotshape(warning_3ema_bear, title="3EMA黏合警示",
+     style=shape.triangledown, location=location.abovebar,
+     color=color.new(color.orange, 0), size=size.small)
+plotshape(warning_4ema, title="4EMA黏合警示",
+     style=shape.triangledown, location=location.abovebar,
+     color=color.new(color.red, 0), size=size.small)
 
-// 构建信号文本和颜色
-signal_text = warning_condition ? "⚠️ 黏合中 | 突破易失败" : 
-     is_squeeze ? "📊 黏合中 | 比值: " + str.tostring(squeeze_ratio, "#.##") : 
-     "比值: " + str.tostring(squeeze_ratio, "#.##")
-signal_color = warning_condition ? color.new(color.orange, 20) : 
-     is_squeeze ? color.new(color.blue, 30) : 
-     color.new(color.gray, 50)
+plotshape(long_condition,  title="做多信号",
+     style=shape.labelup, location=location.belowbar,
+     color=color.new(color.green, 0), textcolor=color.white, text="多", size=size.medium)
+plotshape(short_condition, title="做空信号",
+     style=shape.labeldown, location=location.abovebar,
+     color=color.new(color.red, 0), textcolor=color.white, text="空", size=size.medium)
+
+// ———— 信号表格显示 ————
+signal_text = ""
+signal_color = color.new(color.gray, 50)
+
+if warning_4ema
+    signal_text := "🔴 4EMA黏合 | 关注反向突破失败"
+    signal_color := color.new(color.red, 30)
+elif warning_3ema_bear
+    signal_text := "🟠 3EMA黏合 | 做空区需观察反向突破"
+    signal_color := color.new(color.orange, 20)
+elif warning_20_50
+    signal_text := "🟡 20/50黏合 | 当前突破易失败"
+    signal_color := color.new(color.yellow, 20)
+elif trend_bull
+    signal_text := "📈 多头趋势 | EMA200上方"
+    signal_color := color.new(color.green, 30)
+elif trend_bear
+    signal_text := "📉 空头趋势 | EMA200下方"
+    signal_color := color.new(color.red, 30)
+else
+    signal_text := "⚖️ 无明确信号"
+    signal_color := color.new(color.gray, 50)
 
 var table signal_table = table.new(position.top_right, 1, 1)
 table.cell(signal_table, 0, 0, signal_text, bgcolor=signal_color, text_color=color.white, text_halign=text.align_left)
 
-// ———— 3. 反向强势运转失败后突破均线入场 ————
-// 逻辑：
-//  - 在黏合期间，如果价格先创出近期新低（试图向下假突破），
-//    随后反向向上突破均线（EMA20/50或EMA100），形成"假突破失败反转"→ 做多
-//  - 反之：先创新高后跌破均线 → 做空
-
-// 近期高低点（黏合开始后的极值）
-squeeze_start_bar = ta.barssince(not is_squeeze) // 黏合持续了多少根K线
-
-// 在黏合窗口内的最低/最高收盘价
-lowest_in_squeeze  = ta.lowest(low,  math.min(squeeze_start_bar + 1, swing_lookback))
-highest_in_squeeze = ta.highest(high, math.min(squeeze_start_bar + 1, swing_lookback))
-
-// 在黏合期间是否创出过"窗口新低/新高"（假突破方向）
-made_new_low_in_squeeze  = low <= lowest_in_squeeze  and is_squeeze
-made_new_high_in_squeeze = high >= highest_in_squeeze and is_squeeze
-
-// 用变量记录：黏合过程中是否出现过某方向的强势运动
-var bool saw_downthrust  = false  // 在黏合中出现过向下假突破（创新低）
-var bool saw_upthrust    = false  // 在黏合中出现过向上假突破（创新高）
-
-if not is_squeeze
-    saw_downthrust := false
-    saw_upthrust   := false
-else
-    if made_new_low_in_squeeze
-        saw_downthrust := true
-    if made_new_high_in_squeeze
-        saw_upthrust := true
-
-// ———— 入场条件 ————
-// 做多：黏合中先向下假突破，然后收盘突破上方均线（反向强势失败 → 真突破）
-break_bull_line = break_ema100 ? ema100 : math.max(ema20, ema50)
-break_bear_line = break_ema100 ? ema100 : math.min(ema20, ema50)
-
-long_condition  = is_squeeze and saw_downthrust and ta.crossover(close, break_bull_line)
-short_condition = is_squeeze and saw_upthrust   and ta.crossunder(close, break_bear_line)
-
-// ———— 绘制入场信号 ————
-plotshape(long_condition,  title="做多信号",
-     style=shape.labelup, location=location.belowbar,
-     color=color.new(color.green, 0), textcolor=color.white,
-     text="多", size=size.medium)
-plotshape(short_condition, title="做空信号",
-     style=shape.labeldown, location=location.abovebar,
-     color=color.new(color.red, 0), textcolor=color.white,
-     text="空", size=size.medium)
-
 // ———— 信号报警 ————
-alertcondition(long_condition,  title="做多入场",     message="EMA黏合假突破反转：做多入场")
-alertcondition(short_condition, title="做空入场",     message="EMA黏合假突破反转：做空入场")
-alertcondition(warning_condition, title="黏合突破警示", message="20与50均线黏合中，当前突破易失败")
+alertcondition(long_condition,  title="做多入场", message="EMA黏合反转：做多入场")
+alertcondition(short_condition, title="做空入场", message="EMA黏合反转：做空入场")
+alertcondition(warning_4ema, title="4EMA黏合", message="4根均线黏合，关注反向突破失败")
+alertcondition(warning_3ema_bear, title="3EMA黏合", message="3根均线黏合，做空区需观察")
+alertcondition(warning_20_50, title="20/50黏合", message="20/50均线黏合，当前突破易失败")
