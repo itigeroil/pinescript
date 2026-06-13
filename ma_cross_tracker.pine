@@ -7,12 +7,13 @@ ma50_len  = input.int(50,  title="MA 50 周期",  minval=1)
 ma100_len = input.int(100, title="MA 100 周期", minval=1)
 ma200_len = input.int(200, title="MA 200 周期", minval=1)
 
-ma_type    = input.string("SMA", title="均线类型", options=["SMA", "EMA", "WMA", "HMA"])
-price_src   = input(close, title="价格源")
+ma_type     = input.string("SMA", title="均线类型", options=["SMA", "EMA", "WMA", "HMA"])
+price_src    = input(close, title="价格源")
 
-show_lines  = input.bool(true, title="在主图显示均线")
-show_labels = input.bool(true, title="显示突破标签")
-show_shapes = input.bool(true, title="显示突破箭头")
+show_lines   = input.bool(true, title="在主图显示均线")
+show_labels  = input.bool(true, title="显示突破标签")
+show_shapes  = input.bool(true, title="显示突破箭头")
+merge_mode   = input.bool(true, title="合并同K线多均线突破（推荐）", tooltip="同一根K线连破多条均线时，只显示一个汇总提示")
 
 // ============ 计算均线 ============
 f_ma(src, len, type) =>
@@ -26,10 +27,7 @@ ma50  = f_ma(price_src, ma50_len,  ma_type)
 ma100 = f_ma(price_src, ma100_len, ma_type)
 ma200 = f_ma(price_src, ma200_len, ma_type)
 
-// ============ 突破检测 ============
-// cross_up: 价格从下方移动到均线上方（向上突破）
-// cross_dn: 价格从上方移动到均线下方（向下突破）
-
+// ============ 各均线独立突破检测 ============
 cross20_up  = ta.crossover(close, ma20)
 cross20_dn  = ta.crossunder(close, ma20)
 
@@ -42,6 +40,37 @@ cross100_dn = ta.crossunder(close, ma100)
 cross200_up = ta.crossover(close, ma200)
 cross200_dn = ta.crossunder(close, ma200)
 
+// ============ 合并同一K线多突破 ============
+// 核心思路：优先级 MA200 > MA100 > MA50 > MA20
+// 同一根 K 线上如有多个突破同时为真，取"最远/最重要"的那条均线为主突破
+// 但文字中会列出所有实际被突破的均线，让用户看到完整信息
+
+// --- 向上突破合并 ---
+any_up  = cross20_up or cross50_up or cross100_up or cross200_up
+// 主突破均线名（优先级：200 → 100 → 50 → 20）
+main_up_name = cross200_up ? "MA200" : cross100_up ? "MA100" : cross50_up ? "MA50" : cross20_up ? "MA20" : ""
+// 主突破均线颜色
+main_up_color = cross200_up ? color.red : cross100_up ? color.purple : cross50_up ? color.orange : cross20_up ? color.blue : na
+// 连破均线数
+up_count  = math.sum(cross20_up ? 1 : 0, 1) + math.sum(cross50_up ? 1 : 0, 1) + math.sum(cross100_up ? 1 : 0, 1) + math.sum(cross200_up ? 1 : 0, 1)
+// 汇总文字（例："连破 MA20+MA50+MA100 向上" 或 "向上突破 MA50"）
+up_list   = (cross20_up  ? "MA20"  : "") + (cross20_up  and (cross50_up or cross100_up or cross200_up) ? "+" : "") +
+            (cross50_up  ? "MA50"  : "") + (cross50_up  and (cross100_up or cross200_up) ? "+" : "") +
+            (cross100_up ? "MA100" : "") + (cross100_up and cross200_up ? "+" : "") +
+            (cross200_up ? "MA200" : "")
+up_text   = up_count > 1 ? "连破 " + up_list + " 向上" : "向上突破 " + main_up_name
+
+// --- 向下突破合并 ---
+any_dn  = cross20_dn or cross50_dn or cross100_dn or cross200_dn
+main_dn_name = cross200_dn ? "MA200" : cross100_dn ? "MA100" : cross50_dn ? "MA50" : cross20_dn ? "MA20" : ""
+main_dn_color = cross200_dn ? color.red : cross100_dn ? color.purple : cross50_dn ? color.orange : cross20_dn ? color.blue : na
+dn_count  = math.sum(cross20_dn ? 1 : 0, 1) + math.sum(cross50_dn ? 1 : 0, 1) + math.sum(cross100_dn ? 1 : 0, 1) + math.sum(cross200_dn ? 1 : 0, 1)
+dn_list   = (cross20_dn  ? "MA20"  : "") + (cross20_dn  and (cross50_dn or cross100_dn or cross200_dn) ? "+" : "") +
+            (cross50_dn  ? "MA50"  : "") + (cross50_dn  and (cross100_dn or cross200_dn) ? "+" : "") +
+            (cross100_dn ? "MA100" : "") + (cross100_dn and cross200_dn ? "+" : "") +
+            (cross200_dn ? "MA200" : "")
+dn_text   = dn_count > 1 ? "连破 " + dn_list + " 向下" : "向下突破 " + main_dn_name
+
 // ============ 均线绘图 ============
 plot(show_lines ? ma20  : na, title="MA20",  color=color.blue,   linewidth=2)
 plot(show_lines ? ma50  : na, title="MA50",  color=color.orange, linewidth=2)
@@ -50,47 +79,55 @@ plot(show_lines ? ma200 : na, title="MA200", color=color.red,    linewidth=2)
 
 // ============ 箭头标记 ============
 if show_shapes
-    plotshape(cross20_up,  title="向上突破 MA20",  style=shape.triangleup,   location=location.belowbar, color=color.new(color.blue, 0),   text="↑20", textcolor=color.white, size=size.small)
-    plotshape(cross20_dn,  title="向下突破 MA20",  style=shape.triangledown, location=location.abovebar, color=color.new(color.blue, 0),   text="↓20", textcolor=color.white, size=size.small)
+    if merge_mode
+        // 合并模式：每根K线只画一个箭头，用主突破均线的颜色
+        plotshape(any_up, title="向上突破(合并)", style=shape.triangleup,
+             location=location.belowbar, color=main_up_color, text="↑", textcolor=color.white, size=size.small)
+        plotshape(any_dn, title="向下突破(合并)", style=shape.triangledown,
+             location=location.abovebar, color=main_dn_color, text="↓", textcolor=color.white, size=size.small)
+    else
+        // 原始模式：每条均线独立显示
+        plotshape(cross20_up,  title="向上突破 MA20",  style=shape.triangleup,   location=location.belowbar, color=color.blue,   text="↑20",  textcolor=color.white, size=size.small)
+        plotshape(cross20_dn,  title="向下突破 MA20",  style=shape.triangledown, location=location.abovebar, color=color.blue,   text="↓20",  textcolor=color.white, size=size.small)
+        plotshape(cross50_up,  title="向上突破 MA50",  style=shape.triangleup,   location=location.belowbar, color=color.orange, text="↑50",  textcolor=color.white, size=size.small)
+        plotshape(cross50_dn,  title="向下突破 MA50",  style=shape.triangledown, location=location.abovebar, color=color.orange, text="↓50",  textcolor=color.white, size=size.small)
+        plotshape(cross100_up, title="向上突破 MA100", style=shape.triangleup,   location=location.belowbar, color=color.purple, text="↑100", textcolor=color.white, size=size.small)
+        plotshape(cross100_dn, title="向下突破 MA100", style=shape.triangledown, location=location.abovebar, color=color.purple, text="↓100", textcolor=color.white, size=size.small)
+        plotshape(cross200_up, title="向上突破 MA200", style=shape.triangleup,   location=location.belowbar, color=color.red,    text="↑200", textcolor=color.white, size=size.small)
+        plotshape(cross200_dn, title="向下突破 MA200", style=shape.triangledown, location=location.abovebar, color=color.red,    text="↓200", textcolor=color.white, size=size.small)
 
-    plotshape(cross50_up,  title="向上突破 MA50",  style=shape.triangleup,   location=location.belowbar, color=color.new(color.orange, 0), text="↑50", textcolor=color.white, size=size.small)
-    plotshape(cross50_dn,  title="向下突破 MA50",  style=shape.triangledown, location=location.abovebar, color=color.new(color.orange, 0), text="↓50", textcolor=color.white, size=size.small)
-
-    plotshape(cross100_up, title="向上突破 MA100", style=shape.triangleup,   location=location.belowbar, color=color.new(color.purple, 0), text="↑100", textcolor=color.white, size=size.small)
-    plotshape(cross100_dn, title="向下突破 MA100", style=shape.triangledown, location=location.abovebar, color=color.new(color.purple, 0), text="↓100", textcolor=color.white, size=size.small)
-
-    plotshape(cross200_up, title="向上突破 MA200", style=shape.triangleup,   location=location.belowbar, color=color.new(color.red, 0),    text="↑200", textcolor=color.white, size=size.small)
-    plotshape(cross200_dn, title="向下突破 MA200", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0),    text="↓200", textcolor=color.white, size=size.small)
-
-// ============ 文字标签（详细记录）============
+// ============ 文字标签 ============
 if show_labels
-    if cross20_up
-        label.new(bar_index, low, "向上突破 MA20", color=color.new(color.blue, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
-    if cross20_dn
-        label.new(bar_index, high, "向下突破 MA20", color=color.new(color.blue, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
+    if merge_mode
+        if any_up
+            label.new(bar_index, low, up_text, color=color.new(main_up_color, 85),
+                 textcolor=color.white, style=label.style_label_up, size=size.small)
+        if any_dn
+            label.new(bar_index, high, dn_text, color=color.new(main_dn_color, 85),
+                 textcolor=color.white, style=label.style_label_down, size=size.small)
+    else
+        if cross20_up
+            label.new(bar_index, low, "向上突破 MA20", color=color.new(color.blue, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
+        if cross20_dn
+            label.new(bar_index, high, "向下突破 MA20", color=color.new(color.blue, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
+        if cross50_up
+            label.new(bar_index, low, "向上突破 MA50", color=color.new(color.orange, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
+        if cross50_dn
+            label.new(bar_index, high, "向下突破 MA50", color=color.new(color.orange, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
+        if cross100_up
+            label.new(bar_index, low, "向上突破 MA100", color=color.new(color.purple, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
+        if cross100_dn
+            label.new(bar_index, high, "向下突破 MA100", color=color.new(color.purple, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
+        if cross200_up
+            label.new(bar_index, low, "向上突破 MA200", color=color.new(color.red, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
+        if cross200_dn
+            label.new(bar_index, high, "向下突破 MA200", color=color.new(color.red, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-    if cross50_up
-        label.new(bar_index, low, "向上突破 MA50", color=color.new(color.orange, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
-    if cross50_dn
-        label.new(bar_index, high, "向下突破 MA50", color=color.new(color.orange, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
+// ============ 报警条件（合并后触发，避免同一K线重复报警）============
+alertcondition(any_up, title="向上突破(合并)", message=up_text)
+alertcondition(any_dn, title="向下突破(合并)", message=dn_text)
 
-    if cross100_up
-        label.new(bar_index, low, "向上突破 MA100", color=color.new(color.purple, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
-    if cross100_dn
-        label.new(bar_index, high, "向下突破 MA100", color=color.new(color.purple, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
-
-    if cross200_up
-        label.new(bar_index, low, "向上突破 MA200", color=color.new(color.red, 90), textcolor=color.white, style=label.style_label_up, size=size.small)
-    if cross200_dn
-        label.new(bar_index, high, "向下突破 MA200", color=color.new(color.red, 90), textcolor=color.white, style=label.style_label_down, size=size.small)
-
-// ============ 统计/报警 ============
-alertcondition(cross20_up,  title="向上突破 MA20",  message="价格向上突破 MA20")
-alertcondition(cross20_dn,  title="向下突破 MA20",  message="价格向下突破 MA20")
-alertcondition(cross50_up,  title="向上突破 MA50",  message="价格向上突破 MA50")
-alertcondition(cross50_dn,  title="向下突破 MA50",  message="价格向下突破 MA50")
-alertcondition(cross100_up, title="向上突破 MA100", message="价格向上突破 MA100")
-alertcondition(cross100_dn, title="向下突破 MA100", message="价格向下突破 MA100")
+// 也保留独立报警（按需开启）
 alertcondition(cross200_up, title="向上突破 MA200", message="价格向上突破 MA200")
 alertcondition(cross200_dn, title="向下突破 MA200", message="价格向下突破 MA200")
 
