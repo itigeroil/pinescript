@@ -48,15 +48,18 @@ if showCountdown and barstate.islast
     table.cell(countdownTable, 0, 0, "K线倒计时", text_color=color.white, text_size=size.small)
     table.cell(countdownTable, 1, 0, formatCountdown(remainingSeconds), text_color=remainingSeconds < 30 ? color.red : color.green, text_size=size.normal)
 
+// 存储标签引用以便删除
+var label entryLabel = na
+
 // 显示入场标签
 if showLabels and barstate.islast
     // 删除之前的标签
-    label.delete(label.new(bar_index, na, ""))
+    label.delete(entryLabel)
     
     if isEntryTime
         // 入场时间标签
         labelText = "🟢 入场时间\n剩余: " + formatCountdown(remainingSeconds)
-        label.new(bar_index, high, labelText, 
+        entryLabel := label.new(bar_index, high, labelText, 
                   color=color.new(color.green, 20),
                   textcolor=color.white,
                   style=label.style_label_down,
@@ -64,14 +67,11 @@ if showLabels and barstate.islast
     else
         // 禁止买入标签
         labelText = "🔴 禁止买入\n剩余: " + formatCountdown(remainingSeconds)
-        label.new(bar_index, high, labelText,
+        entryLabel := label.new(bar_index, high, labelText,
                   color=color.new(color.red, 20),
                   textcolor=color.white,
                   style=label.style_label_down,
                   size=size.normal)
-
-// 背景颜色提示
-bgcolor(isEntryTime ? color.new(color.green, 90) : color.new(color.red, 95))
 
 // 信息面板
 var table infoPanel = table.new(position.bottom_right, 2, 4, bgcolor=color.new(color.black, 70), border_width=1)
