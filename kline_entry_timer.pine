@@ -51,6 +51,9 @@ if showCountdown and barstate.islast
 // 存储标签引用以便删除
 var label entryLabel = na
 
+// 计算K线中间位置
+barMiddle = (high + low) / 2
+
 // 显示入场标签
 if showLabels and barstate.islast
     // 删除之前的标签
@@ -59,7 +62,7 @@ if showLabels and barstate.islast
     if isEntryTime
         // 入场时间标签
         labelText = "🟢 入场时间\n剩余: " + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index + 3, high, labelText, 
+        entryLabel := label.new(bar_index + 3, barMiddle, labelText, 
                   color=color.new(color.gray, 20),
                   textcolor=color.white,
                   style=label.style_label_left,
@@ -68,7 +71,7 @@ if showLabels and barstate.islast
     else
         // 禁止买入标签
         labelText = "🔴 禁止买入\n剩余: " + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index + 3, high, labelText,
+        entryLabel := label.new(bar_index + 3, barMiddle, labelText,
                   color=color.new(color.gray, 20),
                   textcolor=color.white,
                   style=label.style_label_left,
