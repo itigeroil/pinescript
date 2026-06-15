@@ -65,18 +65,20 @@ if showLabels and barstate.islast
         entryLabel := label.new(bar_index + 3, barMiddle, labelText, 
                   color=color.new(color.gray, 20),
                   textcolor=color.white,
-                  style=label.style_label_left,
+                  style=label.style_label_down,
                   size=size.normal,
-                  xloc=xloc.bar_index)
+                  xloc=xloc.bar_index,
+                  textalign=text.align_center)
     else
         // 禁止买入标签
         labelText = "🔴 禁止买入\n剩余: " + formatCountdown(remainingSeconds)
         entryLabel := label.new(bar_index + 3, barMiddle, labelText,
                   color=color.new(color.gray, 20),
                   textcolor=color.white,
-                  style=label.style_label_left,
+                  style=label.style_label_down,
                   size=size.normal,
-                  xloc=xloc.bar_index)
+                  xloc=xloc.bar_index,
+                  textalign=text.align_center)
 
 // 信息面板
 var table infoPanel = table.new(position.bottom_right, 2, 4, bgcolor=color.new(color.black, 70), border_width=1)
