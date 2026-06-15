@@ -69,8 +69,8 @@ isAfterEntry = elapsedMinutes <= entryAfterMinutes and elapsedMinutes >= 0
 // 入场时间判断
 isEntryTime = isBeforeEntry or isAfterEntry
 
-// 形态+时间综合判断：形态入场可在时间窗口内，或时间窗口入场也可
-isValidEntry = isEntryTime or isPatternEntry
+// 形态+时间综合判断：必须同时满足时间窗口和形态确认
+isValidEntry = isEntryTime and isPatternEntry
 
 // 格式化倒计时显示
 formatCountdown(seconds) =>
@@ -97,24 +97,10 @@ if showLabels and barstate.islast
     label.delete(entryLabel)
     
     if isValidEntry
-        // 入场时间标签
-        string labelText
-        color labelColor
-        if isPatternEntry and isEntryTime
-            // 形态+时间双重确认
-            labelText := "✅ 形态确认+" + formatCountdown(remainingSeconds)
-            labelColor := color.new(color.green, 60)
-        else if isPatternEntry
-            // 仅形态确认
-            labelText := "✅ 形态入场+" + formatCountdown(remainingSeconds)
-            labelColor := color.new(color.blue, 60)
-        else
-            // 仅时间窗口
-            labelText := "✅" + formatCountdown(remainingSeconds)
-            labelColor := color.new(color.gray, 80)
-        
+        // 形态+时间双重确认才显示入场
+        labelText := "✅" + formatCountdown(remainingSeconds)
         entryLabel := label.new(bar_index + 1, barMiddle, labelText, 
-                  color=labelColor,
+                  color=color.new(color.green, 60),
                   textcolor=color.rgb(255, 255, 255, 10),
                   style=label.style_label_left,
                   size=size.normal,
