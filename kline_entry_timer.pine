@@ -59,19 +59,21 @@ if showLabels and barstate.islast
     if isEntryTime
         // 入场时间标签
         labelText = "🟢 入场时间\n剩余: " + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index, high, labelText, 
-                  color=color.new(color.green, 20),
+        entryLabel := label.new(bar_index + 3, high, labelText, 
+                  color=color.new(color.gray, 20),
                   textcolor=color.white,
                   style=label.style_label_left,
-                  size=size.normal)
+                  size=size.normal,
+                  xloc=xloc.bar_index)
     else
         // 禁止买入标签
         labelText = "🔴 禁止买入\n剩余: " + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index, high, labelText,
-                  color=color.new(color.red, 20),
+        entryLabel := label.new(bar_index + 3, high, labelText,
+                  color=color.new(color.gray, 20),
                   textcolor=color.white,
                   style=label.style_label_left,
-                  size=size.normal)
+                  size=size.normal,
+                  xloc=xloc.bar_index)
 
 // 信息面板
 var table infoPanel = table.new(position.bottom_right, 2, 4, bgcolor=color.new(color.black, 70), border_width=1)
