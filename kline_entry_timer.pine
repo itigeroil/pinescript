@@ -26,6 +26,40 @@ remainingSeconds = timeRemaining / 1000
 elapsedMinutes = timeElapsed / (1000 * 60)
 elapsedSeconds = timeElapsed / 1000
 
+// 计算200均线
+sma200 = ta.sma(close, 200)
+
+// 获取上根K线数据
+prevClose = close[1]
+prevOpen = open[1]
+prevHigh = high[1]
+prevLow = low[1]
+
+// 当前K线数据
+currentClose = close
+currentOpen = open
+currentHigh = high
+currentLow = low
+
+// 判断做多形态：阳包阴（当前阳线实体覆盖前一根阴线实体）
+bullishEngulfing = currentClose > currentOpen and prevClose < prevOpen and // 当前阳线，前一根阴线
+                   currentClose > prevOpen and currentOpen < prevClose and   // 实体覆盖
+                   (currentClose - currentOpen) > (prevOpen - prevClose)     // 阳线实体大于阴线实体
+
+// 判断做空形态：阴包阳（当前阴线实体覆盖前一根阳线实体）
+bearishEngulfing = currentClose < currentOpen and prevClose > prevOpen and // 当前阴线，前一根阳线
+                   currentClose < prevOpen and currentOpen > prevClose and   // 实体覆盖
+                   (currentOpen - currentClose) > (prevClose - prevOpen)     // 阴线实体大于阳线实体
+
+// 判断当前K线是否在200均线上方
+aboveSMA200 = currentClose > sma200 and currentOpen > sma200
+belowSMA200 = currentClose < sma200 and currentOpen < sma200
+
+// 形态入场条件
+bullishPatternEntry = aboveSMA200 and bullishEngulfing
+bearishPatternEntry = belowSMA200 and bearishEngulfing
+isPatternEntry = bullishPatternEntry or bearishPatternEntry
+
 // 判断是否在入场时间窗口
 // 条件1: K线结束前N秒
 isBeforeEntry = remainingSeconds <= entryBeforeSeconds and remainingSeconds > 0
@@ -34,6 +68,9 @@ isAfterEntry = elapsedMinutes <= entryAfterMinutes and elapsedMinutes >= 0
 
 // 入场时间判断
 isEntryTime = isBeforeEntry or isAfterEntry
+
+// 形态+时间综合判断：形态入场可在时间窗口内，或时间窗口入场也可
+isValidEntry = isEntryTime or isPatternEntry
 
 // 格式化倒计时显示
 formatCountdown(seconds) =>
@@ -59,39 +96,58 @@ if showLabels and barstate.islast
     // 删除之前的标签
     label.delete(entryLabel)
     
-    if isEntryTime
+    if isValidEntry
         // 入场时间标签
-        labelText = "🟢 入场时间\n剩余: " + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index + 3, barMiddle, labelText, 
-                  color=color.new(color.gray, 20),
-                  textcolor=color.white,
-                  style=label.style_label_down,
+        string labelText
+        color labelColor
+        if isPatternEntry and isEntryTime
+            // 形态+时间双重确认
+            labelText := "✅ 形态确认+" + formatCountdown(remainingSeconds)
+            labelColor := color.new(color.green, 60)
+        else if isPatternEntry
+            // 仅形态确认
+            labelText := "✅ 形态入场+" + formatCountdown(remainingSeconds)
+            labelColor := color.new(color.blue, 60)
+        else
+            // 仅时间窗口
+            labelText := "✅" + formatCountdown(remainingSeconds)
+            labelColor := color.new(color.gray, 80)
+        
+        entryLabel := label.new(bar_index + 1, barMiddle, labelText, 
+                  color=labelColor,
+                  textcolor=color.rgb(255, 255, 255, 10),
+                  style=label.style_label_left,
                   size=size.normal,
-                  xloc=xloc.bar_index,
-                  textalign=text.align_center)
+                  xloc=xloc.bar_index)
     else
         // 禁止买入标签
-        labelText = "🔴 禁止买入\n剩余: " + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index + 3, barMiddle, labelText,
-                  color=color.new(color.gray, 20),
-                  textcolor=color.white,
-                  style=label.style_label_down,
+        labelText := "⛔" + formatCountdown(remainingSeconds)
+        entryLabel := label.new(bar_index + 1, barMiddle, labelText,
+                  color=color.new(color.gray, 80),
+                  textcolor=color.rgb(255, 255, 255, 10),
+                  style=label.style_label_left,
                   size=size.normal,
-                  xloc=xloc.bar_index,
-                  textalign=text.align_center)
+                  xloc=xloc.bar_index)
 
 // 信息面板
-var table infoPanel = table.new(position.bottom_right, 2, 4, bgcolor=color.new(color.black, 70), border_width=1)
+var table infoPanel = table.new(position.bottom_right, 2, 6, bgcolor=color.new(color.black, 70), border_width=1)
 
 if barstate.islast
     table.cell(infoPanel, 0, 0, "状态", text_color=color.white, text_size=size.small)
-    table.cell(infoPanel, 1, 0, isEntryTime ? "✅ 入场时间" : "⛔ 禁止买入", text_color=isEntryTime ? color.green : color.red, text_size=size.small)
+    table.cell(infoPanel, 1, 0, isValidEntry ? "✅ 可入场" : "⛔ 禁止买入", text_color=isValidEntry ? color.green : color.red, text_size=size.small)
     
-    table.cell(infoPanel, 0, 1, "已过时间", text_color=color.white, text_size=size.small)
-    table.cell(infoPanel, 1, 1, str.tostring(elapsedMinutes, "#.##") + " 分钟", text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 0, 1, "入场类型", text_color=color.white, text_size=size.small)
+    string entryType = isPatternEntry and isEntryTime ? "形态+时间" : isPatternEntry ? "形态确认" : isEntryTime ? "时间窗口" : "无"
+    table.cell(infoPanel, 1, 1, entryType, text_color=color.yellow, text_size=size.small)
     
-    table.cell(infoPanel, 0, 2, "剩余时间", text_color=color.white, text_size=size.small)
-    table.cell(infoPanel, 1, 2, formatCountdown(remainingSeconds), text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 0, 2, "已过时间", text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 1, 2, str.tostring(elapsedMinutes, "#.##") + " 分钟", text_color=color.white, text_size=size.small)
     
-    table.cell(infoPanel, 0, 3, "入场窗口", text_color=color.white, text_size=size.small)
-    table.cell(infoPanel, 1, 3, "开始后" + str.tostring(entryAfterMinutes) + "分钟 / 结束前" + str.tostring(entryBeforeSeconds) + "秒", text_color=color.yellow, text_size=size.small)
+    table.cell(infoPanel, 0, 3, "剩余时间", text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 1, 3, formatCountdown(remainingSeconds), text_color=color.white, text_size=size.small)
+    
+    table.cell(infoPanel, 0, 4, "200均线", text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 1, 4, aboveSMA200 ? "上方" : belowSMA200 ? "下方" : "附近", text_color=aboveSMA200 ? color.green : belowSMA200 ? color.red : color.yellow, text_size=size.small)
+    
+    table.cell(infoPanel, 0, 5, "形态信号", text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 1, 5, bullishPatternEntry ? "做多信号" : bearishPatternEntry ? "做空信号" : "无", text_color=bullishPatternEntry ? color.green : bearishPatternEntry ? color.red : color.gray, text_size=size.small)
