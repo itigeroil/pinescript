@@ -98,8 +98,7 @@ if showLabels and barstate.islast
     
     if isValidEntry
         // 形态+时间双重确认才显示入场
-        labelText := "✅" + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index + 1, barMiddle, labelText, 
+        entryLabel := label.new(bar_index + 1, barMiddle, "✅" + formatCountdown(remainingSeconds), 
                   color=color.new(color.green, 60),
                   textcolor=color.rgb(255, 255, 255, 10),
                   style=label.style_label_left,
@@ -107,8 +106,7 @@ if showLabels and barstate.islast
                   xloc=xloc.bar_index)
     else
         // 禁止买入标签
-        labelText := "⛔" + formatCountdown(remainingSeconds)
-        entryLabel := label.new(bar_index + 1, barMiddle, labelText,
+        entryLabel := label.new(bar_index + 1, barMiddle, "⛔" + formatCountdown(remainingSeconds),
                   color=color.new(color.gray, 80),
                   textcolor=color.rgb(255, 255, 255, 10),
                   style=label.style_label_left,
