@@ -62,7 +62,7 @@ if showLabels and barstate.islast
         entryLabel := label.new(bar_index, high, labelText, 
                   color=color.new(color.green, 20),
                   textcolor=color.white,
-                  style=label.style_label_down,
+                  style=label.style_label_left,
                   size=size.normal)
     else
         // 禁止买入标签
@@ -70,7 +70,7 @@ if showLabels and barstate.islast
         entryLabel := label.new(bar_index, high, labelText,
                   color=color.new(color.red, 20),
                   textcolor=color.white,
-                  style=label.style_label_down,
+                  style=label.style_label_left,
                   size=size.normal)
 
 // 信息面板
