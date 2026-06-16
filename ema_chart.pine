@@ -1,12 +1,26 @@
 //@version=5
 indicator("EMA均线图 20/50/100/200", overlay=true, shorttitle="EMA_Chart")
 
-ema20 = ta.ema(close, 20)
-ema50 = ta.ema(close, 50)
-ema100 = ta.ema(close, 100)
-ema200 = ta.ema(close, 200)
+// 均线周期参数
+ema20_len = input.int(20, title="EMA20周期", minval=1)
+ema50_len = input.int(50, title="EMA50周期", minval=1)
+ema100_len = input.int(100, title="EMA100周期", minval=1)
+ema200_len = input.int(200, title="EMA200周期", minval=1)
 
-plot(ema20, color=color.blue, title="EMA20", linewidth=2)
-plot(ema50, color=color.orange, title="EMA50", linewidth=2)
-plot(ema100, color=color.purple, title="EMA100", linewidth=2)
-plot(ema200, color=color.red, title="EMA200", linewidth=2)
+// 均线颜色参数
+ema20_color = input.color(color.blue, title="EMA20颜色")
+ema50_color = input.color(color.orange, title="EMA50颜色")
+ema100_color = input.color(color.purple, title="EMA100颜色")
+ema200_color = input.color(color.red, title="EMA200颜色")
+
+// 计算EMA均线
+ema20 = ta.ema(close, ema20_len)
+ema50 = ta.ema(close, ema50_len)
+ema100 = ta.ema(close, ema100_len)
+ema200 = ta.ema(close, ema200_len)
+
+// 绘制均线
+plot(ema20, color=ema20_color, title="EMA20", linewidth=2)
+plot(ema50, color=ema50_color, title="EMA50", linewidth=2)
+plot(ema100, color=ema100_color, title="EMA100", linewidth=2)
+plot(ema200, color=ema200_color, title="EMA200", linewidth=2)
