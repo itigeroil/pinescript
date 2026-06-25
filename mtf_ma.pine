@@ -1,0 +1,32 @@
+//@version=5
+indicator("多时间框架均线", overlay=true, shorttitle="MTF MA")
+
+// 参数设置
+maPeriod = input.int(20, "均线周期", minval=1)
+maType = input.string("SMA", "均线类型", options=["SMA", "EMA", "WMA", "SMMA", "VWAP"])
+sourcePrice = input(close, "计算源")
+
+// 目标时间框架设置
+targetTF = input.string("5", "目标时间周期", options=["1", "3", "5", "10", "15", "30", "45", "60", "120", "240", "D", "W"])
+tfSuffix = input.string("", "时间周期后缀", tooltip="显示在标签上的后缀，如5分钟")
+
+// 计算均线
+getMa(price, length, type) =>
+    switch type
+        "SMA" => ta.sma(price, length)
+        "EMA" => ta.ema(price, length)
+        "WMA" => ta.wma(price, length)
+        "SMMA" => ta.sma(price, length)
+        "VWAP" => ta.vwap(price)
+        => ta.sma(price, length)
+
+// 获取目标时间框架的数据
+targetMa = request.security(syminfo.tickerid, targetTF, getMa(sourcePrice, maPeriod, maType))
+
+// 显示均线
+plot(targetMa, color=color.new(color.blue, 0), title="目标周期均线", linewidth=2, style=plot.style_line)
+
+// 显示当前均线值
+var table maTable = table.new(position.top_left, 2, 1, bgcolor=color.new(color.black, 70), border_width=1)
+table.cell(maTable, 0, 0, str.tostring(maPeriod) + tfSuffix + " 均线", text_color=color.white, text_size=size.small)
+table.cell(maTable, 1, 0, str.tostring(targetMa, "#.##"), text_color=color.blue, text_size=size.normal)
