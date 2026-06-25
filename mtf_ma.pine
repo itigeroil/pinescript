@@ -4,6 +4,7 @@ indicator("多时间框架EMA", overlay=true, shorttitle="MTF EMA")
 // 参数设置
 maPeriod = input.int(20, "EMA周期", minval=1)
 sourcePrice = input(close, "计算源")
+showLastBars = input.int(5, "显示最近N根K线标记", minval=1, maxval=100)
 
 // 目标时间框架设置
 targetTF = input.string("5", "目标时间周期", options=["1", "3", "5", "10", "15", "30", "45", "60", "120", "240", "D", "W"])
@@ -16,12 +17,15 @@ targetEma = request.security(syminfo.tickerid, targetTF, ta.ema(sourcePrice, maP
 crossOver = ta.crossover(sourcePrice, targetEma)
 crossUnder = ta.crossunder(sourcePrice, targetEma)
 
+// 判断是否在最近N根K线范围内
+isRecentBar = bar_index >= last_bar_index - showLastBars + 1
+
 // 显示EMA均线
 plot(targetEma, color=color.new(color.blue, 0), title="目标周期EMA", linewidth=2, style=plot.style_line)
 
-// 显示穿越标记
-plotshape(crossOver, title="上穿", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.small, text="上穿", textcolor=color.white)
-plotshape(crossUnder, title="下穿", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.small, text="下穿", textcolor=color.white)
+// 显示穿越标记（仅最近N根K线）
+plotshape(crossOver and isRecentBar, title="上穿", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.small, text="上穿", textcolor=color.white)
+plotshape(crossUnder and isRecentBar, title="下穿", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.small, text="下穿", textcolor=color.white)
 
 // 显示当前均线值
 var table maTable = table.new(position.top_left, 2, 2, bgcolor=color.new(color.black, 70), border_width=1)
