@@ -13,9 +13,20 @@ tfSuffix = input.string("分钟", "时间周期后缀", tooltip="显示在标签
 // 获取目标时间框架的EMA数据
 targetEma = request.security(syminfo.tickerid, targetTF, ta.ema(sourcePrice, maPeriod))
 
-// 检测均线穿越
-crossOver = ta.crossover(sourcePrice, targetEma)
-crossUnder = ta.crossunder(sourcePrice, targetEma)
+// 检测均线穿越（包含影线）
+// 判断K线是否穿越均线：最高价在均线上方且最低价在均线下方
+barCrossesMA = high >= targetEma and low <= targetEma
+
+// 上穿：当前K线穿越均线，且前一根K线在均线下方（整体偏向上穿）
+crossOver = barCrossesMA and high[1] < targetEma[1]
+
+// 下穿：当前K线穿越均线，且前一根K线在均线上方（整体偏向下穿）
+crossUnder = barCrossesMA and low[1] > targetEma[1]
+
+// 如果只是影线触碰但前一根没穿越，则用实体方向判断
+barCrossesMA2 = barCrossesMA and not crossOver and not crossUnder
+crossOver := crossOver or (barCrossesMA2 and close > targetEma)
+crossUnder := crossUnder or (barCrossesMA2 and close < targetEma)
 
 // 判断是否在最近N根K线范围内
 isRecentBar = bar_index >= last_bar_index - showLastBars + 1
