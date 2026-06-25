@@ -12,10 +12,21 @@ tfSuffix = input.string("分钟", "时间周期后缀", tooltip="显示在标签
 // 获取目标时间框架的EMA数据
 targetEma = request.security(syminfo.tickerid, targetTF, ta.ema(sourcePrice, maPeriod))
 
+// 检测均线穿越
+crossOver = ta.crossover(sourcePrice, targetEma)
+crossUnder = ta.crossunder(sourcePrice, targetEma)
+
 // 显示EMA均线
 plot(targetEma, color=color.new(color.blue, 0), title="目标周期EMA", linewidth=2, style=plot.style_line)
 
+// 显示穿越标记
+plotshape(crossOver, title="上穿", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.small, text="上穿", textcolor=color.white)
+plotshape(crossUnder, title="下穿", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.small, text="下穿", textcolor=color.white)
+
 // 显示当前均线值
-var table maTable = table.new(position.top_left, 2, 1, bgcolor=color.new(color.black, 70), border_width=1)
+var table maTable = table.new(position.top_left, 2, 2, bgcolor=color.new(color.black, 70), border_width=1)
 table.cell(maTable, 0, 0, str.tostring(maPeriod) + "EMA " + targetTF + tfSuffix, text_color=color.white, text_size=size.small)
 table.cell(maTable, 1, 0, str.tostring(targetEma, "#.##"), text_color=color.blue, text_size=size.normal)
+table.cell(maTable, 0, 1, "穿越状态", text_color=color.white, text_size=size.small)
+string crossStatus = crossOver ? "上穿" : crossUnder ? "下穿" : "无"
+table.cell(maTable, 1, 1, crossStatus, text_color=crossOver ? color.green : crossUnder ? color.red : color.gray, text_size=size.small)
