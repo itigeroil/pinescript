@@ -1,0 +1,5 @@
+//@version=5
+indicator("20 EMA", overlay=true, shorttitle="20 EMA")
+
+// 显示20周期EMA
+plot(ta.ema(close, 20), color=color.blue, title="20 EMA", linewidth=2)
