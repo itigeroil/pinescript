@@ -7,7 +7,7 @@ nAtr = input.float(1.0, title="N ATR")
 lineLength = input.int(3, title="Line Length")
 lookback = input.int(50, title="Lookback Period")
 
-ma = ta.sma(close, maLength)
+ma = ta.ema(close, maLength)
 atr = ta.atr(atrLength)
 
 isAboveMa = close > ma
