@@ -30,11 +30,11 @@ if barstate.islast
     if isAboveMa
         lineStart = bar_index + lowestLowBar
         lineEnd = lineStart + lineLength - 1
-        atrLine := line.new(lineStart, levelBelow, lineEnd, levelBelow, color=color.green, width=2, style=line.style_dashed)
+        atrLine := line.new(lineStart, levelBelow, lineEnd, levelBelow, color=color.green, width=2, style=line.style_solid)
     else if isBelowMa
         lineStart = bar_index + highestHighBar
         lineEnd = lineStart + lineLength - 1
-        atrLine := line.new(lineStart, levelAbove, lineEnd, levelAbove, color=color.red, width=2, style=line.style_dashed)
+        atrLine := line.new(lineStart, levelAbove, lineEnd, levelAbove, color=color.red, width=2, style=line.style_solid)
 
 bgcolor(isAboveMa ? color.new(color.green, 90) : na)
 bgcolor(isBelowMa ? color.new(color.red, 90) : na)
