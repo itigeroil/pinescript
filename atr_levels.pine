@@ -1,0 +1,40 @@
+//@version=5
+indicator("ATR Levels", overlay=true, shorttitle="ATR_Lv")
+
+maLength = input.int(20, title="MA Length")
+atrLength = input.int(14, title="ATR Length")
+nAtr = input.float(1.0, title="N ATR")
+lineLength = input.int(3, title="Line Length")
+lookback = input.int(50, title="Lookback Period")
+
+ma = ta.sma(close, maLength)
+atr = ta.atr(atrLength)
+
+isAboveMa = close > ma
+isBelowMa = close < ma
+
+lowestLow = ta.lowest(low, lookback)
+lowestLowBar = ta.lowestbars(low, lookback)
+highestHigh = ta.highest(high, lookback)
+highestHighBar = ta.highestbars(high, lookback)
+
+levelBelow = lowestLow - nAtr * atr
+levelAbove = highestHigh + nAtr * atr
+
+plot(ma, color=color.blue, title="20 MA")
+
+var line atrLine = na
+
+if barstate.islast
+    line.delete(atrLine)
+    if isAboveMa
+        lineStart = bar_index + lowestLowBar
+        lineEnd = lineStart + lineLength - 1
+        atrLine := line.new(lineStart, levelBelow, lineEnd, levelBelow, color=color.green, width=2, style=line.style_dashed)
+    else if isBelowMa
+        lineStart = bar_index + highestHighBar
+        lineEnd = lineStart + lineLength - 1
+        atrLine := line.new(lineStart, levelAbove, lineEnd, levelAbove, color=color.red, width=2, style=line.style_dashed)
+
+bgcolor(isAboveMa ? color.new(color.green, 90) : na)
+bgcolor(isBelowMa ? color.new(color.red, 90) : na)
