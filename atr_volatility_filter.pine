@@ -1,0 +1,42 @@
+//@version=5
+indicator("ATR 波动不足交易过滤器", overlay=true)
+
+// ===== 输入参数 =====
+atrLength = input.int(14, title="ATR 周期", minval=1)
+
+// 阈值模式：绝对值 或 价格百分比
+thresholdMode = input.string("百分比", title="阈值模式", options=["百分比", "绝对值"])
+atrPercent   = input.float(0.5, title="ATR 最低百分比 (%)", minval=0.0, step=0.1, tooltip="ATR / 收盘价 * 100，低于此值视为波动不足")
+atrAbsolute  = input.float(0.0, title="ATR 最低绝对值", minval=0.0, step=0.1, tooltip="ATR 绝对值下限，仅在阈值模式=绝对值 时生效")
+
+// 提示方式
+showBackground = input.bool(true,  title="背景高亮")
+showLabel      = input.bool(true,  title="显示标签")
+enableAlert    = input.bool(true,  title="启用预警")
+
+// ===== 计算 ATR =====
+atrValue = ta.atr(atrLength)
+atrPct   = atrValue / close * 100
+
+// ===== 判断波动是否过低 =====
+lowerBound = thresholdMode == "百分比" ? atrPercent : atrAbsolute
+atrMetric  = thresholdMode == "百分比" ? atrPct     : atrValue
+
+isLowVolatility = atrMetric < lowerBound
+// 仅在从"可交易"切换到"不可交易"时触发一次，避免刷屏
+justBecameLow = isLowVolatility and not isLowVolatility[1]
+
+// ===== 可视化 =====
+color bgColor = isLowVolatility ? color.new(color.red, 85) : na
+bgcolor(showBackground ? bgColor : na)
+
+if showLabel and justBecameLow
+    label.new(bar_index, high, "⚠ ATR 过低，不建议交易",
+         style=label.style_label_down, color=color.red, textcolor=color.white, size=size.small)
+
+// ===== 预警 =====
+alertcondition(justBecameLow, title="ATR 波动不足", message="当前 ATR 低于阈值，波动过低，不建议交易。")
+
+// 手动创建预警时可使用以下条件
+if enableAlert and justBecameLow
+    alert("ATR=" + str.tostring(atrValue, "#.####") + " (" + str.tostring(atrPct, "#.##") + "%) 低于阈值 " + str.tostring(lowerBound) + "，波动过低，不建议交易。", alert.freq_once_per_bar_close)
