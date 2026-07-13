@@ -1,0 +1,51 @@
+//@version=5
+indicator("警示弹窗示例", overlay=true, shorttitle="AlertPopup", precision=2)
+
+length = input.int(14, title="RSI周期")
+rsiOverbought = input.int(70, title="超买阈值")
+rsiOversold = input.int(30, title="超卖阈值")
+
+rsiValue = ta.rsi(close, length)
+
+bullishCondition = ta.crossover(rsiValue, rsiOversold)
+bearishCondition = ta.crossunder(rsiValue, rsiOverbought)
+
+plot(rsiValue, color=color.blue, title="RSI")
+hline(rsiOverbought, "超买", color=color.red)
+hline(rsiOversold, "超卖", color=color.green)
+
+bgcolor(bullishCondition ? color.new(color.green, 90) : na)
+bgcolor(bearishCondition ? color.new(color.red, 90) : na)
+
+plotshape(bullishCondition, title="买入信号", location=location.belowbar, 
+    color=color.green, style=shape.labelup, text="买入!", textcolor=color.white, size=size.small)
+
+plotshape(bearishCondition, title="卖出信号", location=location.abovebar, 
+    color=color.red, style=shape.labeldown, text="卖出!", textcolor=color.white, size=size.small)
+
+alertcondition(bullishCondition, title="买入警示", message="RSI超卖，可能出现买入机会！")
+alertcondition(bearishCondition, title="卖出警示", message="RSI超买，可能出现卖出机会！")
+
+if (bullishCondition)
+    alert("买入信号触发！RSI: " + str.tostring(rsiValue), alert.freq_once_per_bar)
+
+if (bearishCondition)
+    alert("卖出信号触发！RSI: " + str.tostring(rsiValue), alert.freq_once_per_bar)
+
+var table alertTable = table.new(position.top_right, 2, 3, bgcolor=color.black, border_width=2, border_color=color.yellow)
+
+if (bullishCondition)
+    table.cell(alertTable, 0, 0, "🚨 警示!", text_color=color.yellow, text_size=size.large)
+    table.cell(alertTable, 0, 1, "买入信号", text_color=color.green)
+    table.cell(alertTable, 0, 2, "RSI: " + str.tostring(rsiValue), text_color=color.white)
+    table.cell(alertTable, 1, 0, "", text_color=color.yellow)
+    table.cell(alertTable, 1, 1, "", text_color=color.green)
+    table.cell(alertTable, 1, 2, "", text_color=color.white)
+
+if (bearishCondition)
+    table.cell(alertTable, 0, 0, "🚨 警示!", text_color=color.yellow, text_size=size.large)
+    table.cell(alertTable, 0, 1, "卖出信号", text_color=color.red)
+    table.cell(alertTable, 0, 2, "RSI: " + str.tostring(rsiValue), text_color=color.white)
+
+if (barstate.islast and not bullishCondition and not bearishCondition)
+    table.clear(alertTable)
