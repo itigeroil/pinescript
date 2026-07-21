@@ -1,0 +1,133 @@
+//@version=5
+// =====================================================================
+// 策略名称：MACD + EMA7 双均线交叉策略（1:2 盈亏比）
+// 规则：
+//   * MACD 金叉 + 价格上穿 EMA7 + 收盘在 EMA7 上方 → 做多
+//   * MACD 死叉 + 价格下穿 EMA7 + 收盘在 EMA7 下方 → 做空
+//   * 多单止损 = 前低；止盈 = 入场 + 2 × 风险
+//   * 空单止损 = 前高；止盈 = 入场 − 2 × 风险
+// =====================================================================
+strategy("MACD + EMA7 双均线交叉策略 1:2",
+         shorttitle = "MACD-EMA7-1:2",
+         overlay    = true,
+         default_qty_type = strategy.percent_of_equity,
+         default_qty_value = 100,
+         process_orders_on_close = true,
+         commission_type = strategy.commission.percent,
+         commission_value = 0.05,
+         initial_capital = 10000,
+         calc_on_every_tick = false)
+
+// ============== 输入参数 ==============
+fastLen   = input.int(12,  "MACD 快线周期",   minval = 1)
+slowLen   = input.int(26,  "MACD 慢线周期",   minval = 1)
+signalLen = input.int(9,   "MACD 信号线周期", minval = 1)
+emaLen    = input.int(7,   "均线周期",        minval = 1)
+lookback  = input.int(20,  "前低/前高回看周期", minval = 2)
+rrRatio   = input.float(2.0, "盈亏比 (止盈:止损)", minval = 0.1, step = 0.1)
+
+// ============== 指标计算 ==============
+[macdLine, signalLine, _] = ta.macd(close, fastLen, slowLen, signalLen)
+ema7 = ta.ema(close, emaLen)
+
+// ============== 信号定义 ==============
+macdGolden     = ta.crossover(macdLine, signalLine)   // MACD 金叉
+macdDeath      = ta.crossunder(macdLine, signalLine)  // MACD 死叉
+priceCrossUp   = ta.crossover(close, ema7)            // 价格上穿 EMA7
+priceCrossDown = ta.crossunder(close, ema7)           // 价格下穿 EMA7
+
+// 前低 / 前高（不含当前 bar）
+prevLow  = ta.lowest(low,  lookback)[1]
+prevHigh = ta.highest(high, lookback)[1]
+
+// 入场条件：MACD 信号 + 价格穿越 EMA + 收盘确认
+longSignal  = macdGolden and priceCrossUp   and close > ema7
+shortSignal = macdDeath  and priceCrossDown and close < ema7
+
+// 仅在无持仓或反向时入场
+canLong  = strategy.position_size <= 0
+canShort = strategy.position_size >= 0
+
+// ============== 交易执行 ==============
+var float longSL  = na
+var float longTP  = na
+var float shortSL = na
+var float shortTP = na
+
+if longSignal and canLong and prevLow < close
+    entryPrice = close
+    longSL := prevLow
+    longTP := entryPrice + rrRatio * (entryPrice - longSL)
+    strategy.entry("多", strategy.long)
+    strategy.exit ("多出", "多", stop = longSL, limit = longTP)
+
+if shortSignal and canShort and prevHigh > close
+    entryPrice = close
+    shortSL := prevHigh
+    shortTP := entryPrice - rrRatio * (shortSL - entryPrice)
+    strategy.entry("空", strategy.short)
+    strategy.exit ("空出", "空", stop = shortSL, limit = shortTP)
+
+// ============== 图表绘制 ==============
+plot(ema7, "EMA7", color = color.orange, linewidth = 2)
+
+// 入场标记
+plotshape(longSignal  and canLong  and prevLow  < close,
+         "做多入场", shape.triangleup,   location.belowbar,
+         color.new(color.green, 0), size = size.small, text = "多", textcolor = color.green)
+
+plotshape(shortSignal and canShort and prevHigh > close,
+         "做空入场", shape.triangledown, location.abovebar,
+         color.new(color.red, 0),   size = size.small, text = "空", textcolor = color.red)
+
+// 止盈/止损标记 —— 通过监测 position_size 由非 0 → 0 判断离场
+isFlat     = strategy.position_size == 0
+wasInTrade = strategy.position_size[1] != 0
+justExited = isFlat and wasInTrade
+
+isTP = justExited and strategy.closedtrades > 0 and
+       strategy.closedtrades.profit(strategy.closedtrades - 1) > 0
+isSL = justExited and strategy.closedtrades > 0 and
+       strategy.closedtrades.profit(strategy.closedtrades - 1) <= 0
+
+plotshape(isTP, "止盈", shape.diamond, location.abovebar,
+         color.new(color.lime, 0),    size = size.tiny, text = "止盈", textcolor = color.lime)
+plotshape(isSL, "止损", shape.xcross,  location.belowbar,
+         color.new(color.fuchsia, 0), size = size.tiny, text = "止损", textcolor = color.fuchsia)
+
+// 当前仓位的止盈/止损水平线（持仓期间显示）
+plot(strategy.position_size > 0 ? longTP  : na, "多止盈", color = color.new(color.green, 40), style = plot.style_linebr, linewidth = 1)
+plot(strategy.position_size > 0 ? longSL  : na, "多止损", color = color.new(color.red,   40), style = plot.style_linebr, linewidth = 1)
+plot(strategy.position_size < 0 ? shortTP : na, "空止盈", color = color.new(color.green, 40), style = plot.style_linebr, linewidth = 1)
+plot(strategy.position_size < 0 ? shortSL : na, "空止损", color = color.new(color.red,   40), style = plot.style_linebr, linewidth = 1)
+
+// ============== 统计表格 ==============
+var table statsTable = table.new(position.top_right, 2, 7,
+                                 bgcolor     = color.new(color.black, 20),
+                                 border_width = 1,
+                                 border_color = color.gray)
+
+if barstate.islast
+    // 表头
+    table.cell(statsTable, 0, 0, "统计项目", text_color = color.white, bgcolor = color.gray,  text_size = size.normal)
+    table.cell(statsTable, 1, 0, "数值",      text_color = color.white, bgcolor = color.gray,  text_size = size.normal)
+
+    totalEntries = strategy.closedtrades + strategy.opentrades
+
+    table.cell(statsTable, 0, 1, "入场次数", text_color = color.white, text_size = size.normal)
+    table.cell(statsTable, 1, 1, str.tostring(totalEntries),        text_color = color.white, text_size = size.normal)
+
+    table.cell(statsTable, 0, 2, "止盈次数", text_color = color.white, text_size = size.normal)
+    table.cell(statsTable, 1, 2, str.tostring(strategy.wintrades),   text_color = color.green, text_size = size.normal)
+
+    table.cell(statsTable, 0, 3, "止损次数", text_color = color.white, text_size = size.normal)
+    table.cell(statsTable, 1, 3, str.tostring(strategy.losstrades),  text_color = color.red,   text_size = size.normal)
+
+    table.cell(statsTable, 0, 4, "总盈利",   text_color = color.white, text_size = size.normal)
+    table.cell(statsTable, 1, 4, str.tostring(strategy.grossprofit, "#.##"), text_color = color.green, text_size = size.normal)
+
+    table.cell(statsTable, 0, 5, "总亏损",   text_color = color.white, text_size = size.normal)
+    table.cell(statsTable, 1, 5, str.tostring(strategy.grossloss,   "#.##"), text_color = color.red,   text_size = size.normal)
+
+    table.cell(statsTable, 0, 6, "净利润",   text_color = color.white, text_size = size.normal)
+    table.cell(statsTable, 1, 6, str.tostring(strategy.netprofit,   "#.##"), text_color = color.white, text_size = size.normal)
