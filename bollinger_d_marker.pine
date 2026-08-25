@@ -1,0 +1,32 @@
+//@version=5
+indicator("布林带突破标记D", overlay=true)
+
+// ========== 参数设置 ==========
+bbLength = input.int(20, title="布林带周期")
+bbMult = input.float(2.0, title="布林带倍数")
+
+// ========== 计算布林带 ==========
+basis = ta.sma(close, bbLength)
+dev = bbMult * ta.stdev(close, bbLength)
+upperBand = basis + dev
+lowerBand = basis - dev
+
+// ========== 突破条件 ==========
+breakLower = close < lowerBand   // 收盘价低于布林带底线
+breakUpper = close > upperBand   // 收盘价高于布林带顶线
+breakSignal = breakLower or breakUpper
+
+// ========== 顶部标记D（图标透明，只显示文字） ==========
+plotshape(breakSignal, title="D标记", location=location.top,
+    color=color.new(color.white, 100),
+    style=shape.labeldown,
+    text="D", textcolor=breakUpper ? color.red : color.green, size=size.small)
+
+// ========== 绘制布林带 ==========
+plot(basis, title="中轨", color=color.orange, linewidth=1)
+plot(upperBand, title="上轨", color=color.red, linewidth=1)
+plot(lowerBand, title="下轨", color=color.green, linewidth=1)
+
+// ========== 背景提示 ==========
+bgcolor(breakLower ? color.new(color.green, 90) : na)
+bgcolor(breakUpper ? color.new(color.red, 90) : na)
