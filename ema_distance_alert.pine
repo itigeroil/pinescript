@@ -17,16 +17,16 @@ distancePct = math.abs(ema10 - ema20) / ema20 * 100
 isFar = distancePct > threshold
 isNear = distancePct <= threshold
 
-// ========== 顶部提示（图标透明，只显示文字） ==========
+// ========== 顶部提示（显示图标，隐藏文字） ==========
 plotshape(isFar, title="距离过大", location=location.top,
-    color=color.new(color.white, 100),
+    color=color.red,
     style=shape.labeldown,
-    text="10", textcolor=color.red, size=size.small)
+    text="10", textcolor=color.new(color.white, 100), size=size.small)
 
 plotshape(isNear, title="距离接近", location=location.top,
-    color=color.new(color.white, 100),
+    color=color.green,
     style=shape.labeldown,
-    text="20", textcolor=color.green, size=size.small)
+    text="20", textcolor=color.new(color.white, 100), size=size.small)
 
 // ========== 绘制EMA ==========
 plot(ema10, title="EMA10", color=color.yellow, linewidth=1)
