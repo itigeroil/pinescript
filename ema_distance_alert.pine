@@ -1,0 +1,36 @@
+//@version=5
+indicator("EMA距离提示", overlay=true)
+
+// ========== 参数设置 ==========
+fastEma = input.int(10, title="快线EMA周期")
+slowEma = input.int(20, title="慢线EMA周期")
+threshold = input.float(1.0, title="距离比例阈值(%)", step=0.1)
+
+// ========== 计算EMA ==========
+ema10 = ta.ema(close, fastEma)
+ema20 = ta.ema(close, slowEma)
+
+// ========== 计算距离比例 ==========
+distancePct = math.abs(ema10 - ema20) / ema20 * 100
+
+// ========== 判断条件 ==========
+isFar = distancePct > threshold
+isNear = distancePct <= threshold
+
+// ========== 顶部提示（图标透明，只显示文字） ==========
+plotshape(isFar, title="距离过大", location=location.top,
+    color=color.new(color.white, 100),
+    style=shape.labeldown,
+    text="10", textcolor=color.red, size=size.small)
+
+plotshape(isNear, title="距离接近", location=location.top,
+    color=color.new(color.white, 100),
+    style=shape.labeldown,
+    text="20", textcolor=color.green, size=size.small)
+
+// ========== 绘制EMA ==========
+plot(ema10, title="EMA10", color=color.yellow, linewidth=1)
+plot(ema20, title="EMA20", color=color.blue, linewidth=1)
+
+// ========== 数据窗口显示距离 ==========
+plot(distancePct, title="EMA距离%", color=color.white, display=display.data_window)
